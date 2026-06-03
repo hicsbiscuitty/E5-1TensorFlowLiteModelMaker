@@ -1,12 +1,12 @@
-# E5-1TensorFlowLiteModelMaker
+E5-1 TensorFlow Lite Model Maker
+
+  - 1.  参数设置
+
 import tarfile
 import numpy as np
 import tensorflow as tf
 from pathlib import Path
 
-# ==========================================
-# 1. 参数设置
-# ==========================================
 FLOWER_URL = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"
 DATA_DIR = None                # 设为 None 则自动下载官方数据
 EXPORT_DIR = "exported_flower_model"
@@ -19,9 +19,8 @@ SEED = 123
 
 print("TensorFlow 版本:", tf.__version__)
 
-# ==========================================
-# 2. 读取并划分数据集 
-# ==========================================
+  - 2.  读取并划分数据集
+
 def load_flower_datasets(data_dir, image_size, batch_size, seed):
     if data_dir is None:
         # 下载并自动解压数据
@@ -35,7 +34,6 @@ def load_flower_datasets(data_dir, image_size, batch_size, seed):
         data_dir, validation_split=0.2, subset="training", seed=seed,
         image_size=(image_size, image_size), batch_size=batch_size)
     
-   
     val_ds = tf.keras.utils.image_dataset_from_directory(
         data_dir, validation_split=0.2, subset="validation", seed=seed,
         image_size=(image_size, image_size), batch_size=batch_size)
@@ -47,7 +45,7 @@ def load_flower_datasets(data_dir, image_size, batch_size, seed):
     test_ds = val_ds.take(val_batches // 2)
     val_ds = val_ds.skip(val_batches // 2)
 
-    #使用缓存和预取提高训练速度
+    # 使用缓存和预取提高训练速度
     autotune = tf.data.AUTOTUNE
     train_ds = train_ds.cache().shuffle(1000, seed=seed).prefetch(autotune)
     val_ds = val_ds.cache().prefetch(autotune)
@@ -58,9 +56,8 @@ def load_flower_datasets(data_dir, image_size, batch_size, seed):
 train_ds, val_ds, test_ds, class_names = load_flower_datasets(DATA_DIR, IMAGE_SIZE, BATCH_SIZE, SEED)
 print("类别名称:", class_names)
 
-# ==========================================
-# 3. 构建 Keras 模型
-# ==========================================
+  - 3.  构建 Keras 模型
+
 def build_model(num_classes, image_size, learning_rate):
     inputs = tf.keras.Input(shape=(image_size, image_size, 3), name="image")
 
@@ -86,12 +83,11 @@ def build_model(num_classes, image_size, learning_rate):
         loss=tf.keras.losses.SparseCategoricalCrossentropy(),
         metrics=["accuracy"])
     return model
-    
+
 model = build_model(len(class_names), IMAGE_SIZE, LEARNING_RATE)
 
-# ==========================================
-# 4. 训练与评估
-# ==========================================
+  - 4.  训练与评估
+
 print("开始训练...")
 history = model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS)
 
@@ -99,9 +95,8 @@ history = model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS)
 loss, accuracy = model.evaluate(test_ds)
 print(f"测试集准确率: {accuracy:.4f}")
 
-# ==========================================
-# 5. 模型转换与导出 
-# ==========================================
+  - 5.  模型转换与导出
+
 def convert_to_tflite(model, quantization):
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     if quantization == "dynamic":
@@ -123,9 +118,8 @@ tflite_path.write_bytes(tflite_model)
 
 print(f"TFLite 模型已导出至: {tflite_path}")
 
-# ==========================================
-# 6. 推理验证
-# ==========================================
+  - 6.  推理验证
+
 def smoke_test_tflite(tflite_path, test_ds, class_names):
     interpreter = tf.lite.Interpreter(model_path=str(tflite_path))
     interpreter.allocate_tensors()
@@ -143,6 +137,7 @@ def smoke_test_tflite(tflite_path, test_ds, class_names):
         print(f"真实类别: {class_names[labels[i]]} -> 预测类别: {class_names[predicted_id]}")
 
 smoke_test_tflite(tflite_path, test_ds, class_names)
-使用E4TFLClassify项目验证生成的model.tflite
-<img width="1280" height="764" alt="联想截图_20260603145457" src="https://github.com/user-attachments/assets/fdba0152-d32c-4597-ba52-3a4234507a43" />
-<img width="1080" height="2400" alt="Screenshot_20260603_145414" src="https://github.com/user-attachments/assets/7418d57a-47fe-420c-8897-b9ed1d9c78bd" />
+
+  - 使用 E4TFLClassify 项目验证生成的 model.tflite
+<img width="1280" height="764" alt="联想截图_20260603145457" src="https://github.com/user-attachments/assets/318067da-d96c-49d1-a45a-43e03fdb27ee" />
+<img width="1080" height="2400" alt="Screenshot_20260603_145414" src="https://github.com/user-attachments/assets/f1e2c2eb-d73a-4182-ab17-684f19d9948f" />
